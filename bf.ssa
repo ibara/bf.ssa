@@ -1,0 +1,153 @@
+# Brainfuck compiler in QBE.
+
+function w $mismatch() {	# Static function
+@start
+	call $fputs(l $bm, w 2)	# Can call C functions at any time
+	call $exit(w 1)
+	ret 0			# All functions end with ret, jmp, or jnz
+}
+
+function w $isleft() {
+@start
+	call $puts(l $left)
+	ret 0
+}
+
+function w $isright() {
+@start
+	call $puts(l $right)
+	ret 0
+}
+
+function w $isdec() {
+@start
+	call $puts(l $dec)
+	ret 0
+}
+
+function w $isinc() {
+@start
+	call $puts(l $inc)
+	ret 0
+}
+
+function w $isgetchar() {
+@start
+	call $puts(l $gchar)
+	ret 0
+}
+
+function w $isputchar() {
+@start
+	call $puts(l $pchar)
+	ret 0
+}
+
+function w $islopen() {
+@start
+	%d =w loadsw $depth	# Load value of global variable
+	%d =w add %d, 1		# Because you can only assign to temporaries
+	storew %d, $depth	# Store value to global variable
+	call $puts(l $lopen)
+	ret 0
+}
+
+function w $islclose() {
+@start
+	%d =w loadsw $depth
+	%d =w sub %d, 1
+	storew %d, $depth
+	%cmp =w ceqw %d, -1	# Return 1 if true, 0 if false
+	jnz %cmp, @bad, @good	# jnz is the only conditional jump
+@bad
+	call $mismatch()
+	ret 0
+@good
+	call $puts(l $lclose)
+	ret 0
+}
+
+export function w $main() {	# Non-static function
+@start
+	call $puts(l $prologue)
+@loop
+	%r =w call $read(w 0, l $c, w 1)
+	%cmp =w ceqw %r, 1
+	jnz %cmp, @maybeleft, @eof
+@maybeleft
+	%b =w loadub $c		# Bytes must be loaded as words
+	%cmp =w ceqw %b, 60
+	jnz %cmp, @isleft, @mayberight
+@isleft
+	call $isleft()
+	jmp @loop
+@mayberight
+	%cmp =w ceqw %b, 62
+	jnz %cmp, @isright, @maybedec
+@isright
+	call $isright()
+	jmp @loop
+@maybedec
+	%cmp =w ceqw %b, 45
+	jnz %cmp, @isdec, @maybeinc
+@isdec
+	call $isdec()
+	jmp @loop
+@maybeinc
+	%cmp =w ceqw %b, 43
+	jnz %cmp, @isinc, @maybegetchar
+@isinc
+	call $isinc()
+	jmp @loop
+@maybegetchar
+	%cmp =w ceqw %b, 44
+	jnz %cmp, @isgetchar, @maybeputchar
+@isgetchar
+	call $isgetchar()
+	jmp @loop
+@maybeputchar
+	%cmp =w ceqw %b, 46
+	jnz %cmp, @isputchar, @maybelopen
+@isputchar
+	call $isputchar()
+	jmp @loop
+@maybelopen
+	%cmp =w ceqw %b, 91
+	jnz %cmp, @islopen, @maybelclose
+@islopen
+	call $islopen()
+	jmp @loop
+@maybelclose
+	%cmp =w ceqw %b, 93
+	jnz %cmp, @islclose, @loop
+@islclose
+	call $islclose()
+	jmp @loop
+@eof
+	%d =w loadsw $depth
+	jnz %d, @mismatch, @done
+@mismatch
+	call $mismatch()
+	ret 0
+@done
+	call $puts(l $epilogue)
+	ret 0
+}
+
+# Global variables
+data $c = { b 0 }
+data $depth = { w 0 }
+
+# Strings
+data $bm = { b "bfc: bracket mismatch\n", b 0 }
+
+data $prologue = { b "char a[65536], *p=a;\nint\nmain(void)\n{", b 0 }
+data $left = { b "p-=1;", b 0 }
+data $right = { b "p+=1;", b 0 }
+data $dec = { b "*p-=1;", b 0 }
+data $inc = { b "*p+=1;", b 0 }
+data $gchar = { b "*p=getchar();", b 0 }
+data $pchar = { b "putchar(*p);", b 0 }
+data $lopen = { b "while(*p){", b 0 }
+data $lclose = { b "}", b 0 }
+data $epilogue = { b "return 0;\n}", b 0 }

@@ -1,45 +1,28 @@
 # Brainfuck compiler in QBE.
 
-function w $mismatch() {	# Static function
+function w $dputs(l %s, w %fd)	# Static function with parameters
+{
 @start
-	call $fputs(l $bm, w 2)	# Can call C functions at any time
-	call $exit(w 1)
+	%arr =l alloc8 8	# Allocate an array of longs of size 1
+	storel %s, %arr		# So we can store the address of the string
+	%loc =l loadl %arr	# And put the string address in a temporary
+@loop
+	%ch =w loadub %loc	# Get byte at current string location
+	%cmp =w ceqw %ch, 0	# Is byte NUL? Return 1 if true, 0 if false
+	jnz %cmp, @done, @pbyte	# cmp returned true ? done : pbyte
+@pbyte
+	storew %ch, $ch		# Put byte into write buffer
+	call $write(w %fd, l $ch, w 1)
+	%loc =l add %loc, 1	# Next character in string
+	jmp @loop
+@done
 	ret 0			# All functions end with ret, jmp, or jnz
 }
 
-function w $isleft() {
+function w $mismatch() {	# Static function without parameters
 @start
-	call $puts(l $left)
-	ret 0
-}
-
-function w $isright() {
-@start
-	call $puts(l $right)
-	ret 0
-}
-
-function w $isdec() {
-@start
-	call $puts(l $dec)
-	ret 0
-}
-
-function w $isinc() {
-@start
-	call $puts(l $inc)
-	ret 0
-}
-
-function w $isgetchar() {
-@start
-	call $puts(l $gchar)
-	ret 0
-}
-
-function w $isputchar() {
-@start
-	call $puts(l $pchar)
+	call $dputs(l $bmis, w 2)
+	call $exit(w 1)		# Can call C functions at any time
 	ret 0
 }
 
@@ -48,7 +31,7 @@ function w $islopen() {
 	%d =w loadsw $depth	# Load value of global variable
 	%d =w add %d, 1		# Because you can only assign to temporaries
 	storew %d, $depth	# Store value to global variable
-	call $puts(l $lopen)
+	call $dputs(l $lopen, w 1)
 	ret 0
 }
 
@@ -57,59 +40,59 @@ function w $islclose() {
 	%d =w loadsw $depth
 	%d =w sub %d, 1
 	storew %d, $depth
-	%cmp =w ceqw %d, -1	# Return 1 if true, 0 if false
+	%cmp =w ceqw %d, -1
 	jnz %cmp, @bad, @good	# jnz is the only conditional jump
 @bad
 	call $mismatch()
 	ret 0
 @good
-	call $puts(l $lclose)
+	call $dputs(l $lclose, w 1)
 	ret 0
 }
 
-export function w $main() {	# Non-static function
+export function w $main() {	# Function
 @start
-	call $puts(l $prologue)
+	call $dputs(l $prologue, w 1)
 @loop
-	%r =w call $read(w 0, l $c, w 1)
+	%r =w call $read(w 0, l $ch, w 1)
 	%cmp =w ceqw %r, 1
 	jnz %cmp, @maybeleft, @eof
 @maybeleft
-	%b =w loadub $c		# Bytes must be loaded as words
+	%b =w loadub $ch	# Bytes must be loaded as words
 	%cmp =w ceqw %b, 60
 	jnz %cmp, @isleft, @mayberight
 @isleft
-	call $isleft()
+	call $dputs(l $left, w 1)
 	jmp @loop
 @mayberight
 	%cmp =w ceqw %b, 62
 	jnz %cmp, @isright, @maybedec
 @isright
-	call $isright()
+	call $dputs(l $right, w 1)
 	jmp @loop
 @maybedec
 	%cmp =w ceqw %b, 45
 	jnz %cmp, @isdec, @maybeinc
 @isdec
-	call $isdec()
+	call $dputs(l $dec, w 1)
 	jmp @loop
 @maybeinc
 	%cmp =w ceqw %b, 43
 	jnz %cmp, @isinc, @maybegetchar
 @isinc
-	call $isinc()
+	call $dputs(l $inc, w 1)
 	jmp @loop
 @maybegetchar
 	%cmp =w ceqw %b, 44
 	jnz %cmp, @isgetchar, @maybeputchar
 @isgetchar
-	call $isgetchar()
+	call $dputs(l $gchar, w 1)
 	jmp @loop
 @maybeputchar
 	%cmp =w ceqw %b, 46
 	jnz %cmp, @isputchar, @maybelopen
 @isputchar
-	call $isputchar()
+	call $dputs(l $pchar, w 1)
 	jmp @loop
 @maybelopen
 	%cmp =w ceqw %b, 91
@@ -130,24 +113,24 @@ export function w $main() {	# Non-static function
 	call $mismatch()
 	ret 0
 @done
-	call $puts(l $epilogue)
+	call $dputs(l $epilogue, w 1)
 	ret 0
 }
 
 # Global variables
-data $c = { b 0 }
+data $ch = { b 0 }
 data $depth = { w 0 }
 
 # Strings
-data $bm = { b "bfc: bracket mismatch\n", b 0 }
+data $bmis = { b "bfc: bracket mismatch\n", b 0 }
 
-data $prologue = { b "char a[65536], *p=a;\nint\nmain(void)\n{", b 0 }
-data $left = { b "p-=1;", b 0 }
-data $right = { b "p+=1;", b 0 }
-data $dec = { b "*p-=1;", b 0 }
-data $inc = { b "*p+=1;", b 0 }
-data $gchar = { b "*p=getchar();", b 0 }
-data $pchar = { b "putchar(*p);", b 0 }
-data $lopen = { b "while(*p){", b 0 }
-data $lclose = { b "}", b 0 }
-data $epilogue = { b "return 0;\n}", b 0 }
+data $prologue = { b "char a[65536], *p=a;\nint\nmain(void)\n{\n", b 0 }
+data $left = { b "p-=1;\n", b 0 }
+data $right = { b "p+=1;\n", b 0 }
+data $dec = { b "*p-=1;\n", b 0 }
+data $inc = { b "*p+=1;\n", b 0 }
+data $gchar = { b "*p=getchar();\n", b 0 }
+data $pchar = { b "putchar(*p);\n", b 0 }
+data $lopen = { b "while(*p){\n", b 0 }
+data $lclose = { b "}\n", b 0 }
+data $epilogue = { b "return 0;\n}\n", b 0 }

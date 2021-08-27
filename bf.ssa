@@ -3,17 +3,14 @@
 function w $dputs(l %s, w %fd)	# Static function with parameters
 {
 @start
-	%arr =l alloc8 8	# Allocate an array of longs of size 1
-	storel %s, %arr		# So we can store the address of the string
-	%loc =l loadl %arr	# And put the string address in a temporary
 @loop
-	%ch =w loadub %loc	# Get byte at current string location
+	%ch =w loadub %s	# Get byte at current string location
 	%cmp =w ceqw %ch, 0	# Is byte NUL? Return 1 if true, 0 if false
 	jnz %cmp, @done, @pbyte	# cmp returned true ? done : pbyte
 @pbyte
 	storew %ch, $ch		# Put byte into write buffer
 	call $write(w %fd, l $ch, w 1)
-	%loc =l add %loc, 1	# Next character in string
+	%s =l add %s, 1		# Next character in string
 	jmp @loop
 @done
 	ret 0			# All functions end with ret, jmp, or jnz

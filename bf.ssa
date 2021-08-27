@@ -4,8 +4,7 @@ function $dputs(l %s, w %fd) {	# Static function with parameters
 @start
 @loop
 	%ch =w loadub %s	# Get byte at current string location
-	%cmp =w ceqw %ch, 0	# Is byte NUL? Return 1 if true, 0 if false
-	jnz %cmp, @done, @pbyte	# cmp returned true ? done : pbyte
+	jnz %ch, @pbyte, @done	# ch != 0 ? @pbyte : @done
 @pbyte
 	storew %ch, $ch		# Put byte into write buffer
 	call $write(w %fd, l $ch, w 1)

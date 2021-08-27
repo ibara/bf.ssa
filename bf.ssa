@@ -1,7 +1,6 @@
 # Brainfuck compiler in QBE.
 
-function w $dputs(l %s, w %fd)	# Static function with parameters
-{
+function $dputs(l %s, w %fd) {	# Static function with parameters
 @start
 @loop
 	%ch =w loadub %s	# Get byte at current string location
@@ -13,26 +12,26 @@ function w $dputs(l %s, w %fd)	# Static function with parameters
 	%s =l add %s, 1		# Next character in string
 	jmp @loop
 @done
-	ret 0			# All functions end with ret, jmp, or jnz
+	ret			# All functions end with ret, jmp, or jnz
 }
 
-function w $mismatch() {	# Static function without parameters
+function $mismatch() {		# Static function without parameters
 @start
 	call $dputs(l $bmis, w 2)
 	call $exit(w 1)		# Can call C functions at any time
-	ret 0
+	ret
 }
 
-function w $islopen() {
+function $islopen() {
 @start
 	%d =w loadsw $depth	# Load value of global variable
 	%d =w add %d, 1		# Because you can only assign to temporaries
 	storew %d, $depth	# Store value to global variable
 	call $dputs(l $lopen, w 1)
-	ret 0
+	ret
 }
 
-function w $islclose() {
+function $islclose() {
 @start
 	%d =w loadsw $depth
 	%d =w sub %d, 1
@@ -41,10 +40,10 @@ function w $islclose() {
 	jnz %cmp, @bad, @good	# jnz is the only conditional jump
 @bad
 	call $mismatch()
-	ret 0
+	ret
 @good
 	call $dputs(l $lclose, w 1)
-	ret 0
+	ret
 }
 
 export function w $main() {	# Function

@@ -2,15 +2,16 @@
 
 function $dputs(l %s, w %fd) {	# Static function with parameters
 @start
+	%str =l copy %s		# Working pointer str
 @loop
-	%ch =w loadub %s	# Get byte at current string location
-	jnz %ch, @pbyte, @done	# ch != 0 ? @pbyte : @done
-@pbyte
-	storew %ch, $ch		# Put byte into write buffer
-	%r =l call $write(w %fd, l $ch, l 1)
-	%s =l add %s, 1		# Next character in string
+	%ch =w loadub %str	# Get byte at current string location
+	jnz %ch, @not, @done	# ch != 0 ? @not : @done
+@not
+	%str =l add %str, 1	# Next character in string
 	jmp @loop
 @done
+	%len =l sub %str, %s	# strlen(3), basically
+	%r =l call $write(w %fd, l %s, l %len)
 	ret			# All functions end with ret, jmp, or jnz
 }
 
@@ -119,7 +120,7 @@ data $depth = { w 0 }
 # Strings
 data $bmis = { b "bfc: bracket mismatch\n", b 0 }
 
-data $prologue = { b "char a[65536], *p=a;\nint\nmain(void)\n{\n", b 0 }
+data $prologue = { b "#include <stdio.h>\nchar a[65536], *p=a;\nint\nmain(void)\n{\n", b 0 }
 data $left = { b "p-=1;\n", b 0 }
 data $right = { b "p+=1;\n", b 0 }
 data $dec = { b "*p-=1;\n", b 0 }
